@@ -1,2 +1,2 @@
 # new-repo
-thid is a nre file
+thid is a new file
