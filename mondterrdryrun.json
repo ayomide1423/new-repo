@@ -1,0 +1,52 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "contain 1 vpc and a subnet",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "appVpcCidr": {
+          "Description": "cidr for the vpc",
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+      },
+      "subnetAz": {
+          "Description": "AZ for the subnet",
+          "Type": "AWS::EC2::AvailabilityZone::Name",
+
+  },
+      "appSubnetCidr": {
+          "Description": "Cidr for the subnet",
+          "Type": "String",
+          "Default": "10.0.1.0/24"
+      }
+
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "appVpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "appVpcCidr" },
+          "Tags": [{ "Key": "Name", "Value":  "app-Vpc" }]
+        }
+      },
+      "appSubnet": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "AvailabilityZone": { "Ref": "subnetAz" },
+          "VpcId": { "Ref": "appVpc" },
+          "CidrBlock": { "Ref": "appSubnetCidr" },
+          "Tags": [{ "Key": "Name", "Value":  "app-subnet" }]
+        }
+      }
+    },
+    "Outputs": {
+
+    }
+}

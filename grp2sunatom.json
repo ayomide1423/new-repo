@@ -1,0 +1,164 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": " 1 vpc, 2 subnets",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "grp2CidrBlk": {
+          "Description": "cidr block for our vpc",
+          "Type": "String",
+          "Default": "10.0.0.0/16"
+      },
+      "grp2PrvtAz1": {
+          "Description": "AvailabilityZone 1",
+          "Type": "AWS::EC2::AvailabilityZone::Name"
+      },
+      "grp2PrivSnCidr": {
+          "Description": "cidr for our priv subnet",
+          "Type": "String",
+          "Default": "10.0.1.0/24"
+      },
+    "grp2PubAz2": {
+        "Description": "AvailabilityZone for our public subnet",
+        "Type": "AWS::EC2::AvailabilityZone::Name"
+
+    },
+    "grp2PubSnCidr": {
+        "Description": "cidr block for our public subnet",
+        "Type": "String",
+        "Default": "10.0.2.0/24"
+    },
+
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "grp2Vpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "grp2CidrBlk" },
+          "Tags": [{ "Key": "Name", "Value":  "grp2-Vpc" }]
+        }
+      },
+          "grp2PrivSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "AvailabilityZone": { "Ref": "grp2PrvtAz1" },
+              "VpcId": { "Ref": "grp2Vpc" },
+              "CidrBlock": { "Ref": "grp2PrivSnCidr" },
+              "Tags": [{ "Key": "Name", "Value":  "grp-2-priv-subnet" }]
+            }
+            },
+            "grp2PubSubnet": {
+              "Type": "AWS::EC2::Subnet",
+              "Properties": {
+                "AvailabilityZone": { "Ref": "grp2PubAz2" },
+                "VpcId": { "Ref": "grp2Vpc" },
+                "CidrBlock": { "Ref": "grp2PubSnCidr" },
+                "Tags": [{ "Key": "Name", "Value":  "grp-2-pub-subnet" }]
+              }
+            },
+            "grp2IGW": {
+              "Type": "AWS::EC2::InternetGateway",
+              "Properties": {
+                "Tags": [{ "Key": " Name", "Value": "grp2-IGW" }]
+              }
+            },
+            "AttachGateway": {
+              "Type": "AWS::EC2::VPCGatewayAttachment",
+              "Properties": {
+                "VpcId": { "Ref": "grp2Vpc" },
+                "InternetGatewayId": { "Ref": "grp2IGW" }
+              }
+            },
+            "grp2PrivRT": {
+              "Type": "AWS::EC2::RouteTable",
+              "Properties": {
+                "VpcId": { "Ref": "grp2Vpc" },
+                "Tags": [{ "Key": "Name", "Value":  "grp2-Route-table" }]
+              }
+            },
+            "grp2PrivRtAssoc": {
+              "Type": "AWS::EC2::SubnetRouteTableAssociation",
+              "Properties": {
+                "SubnetId": { "Ref": "grp2PrivSubnet" },
+                "RouteTableId": { "Ref": "grp2PrivRT" }
+              }
+            },
+            "grp2PubRt": {
+              "Type": "AWS::EC2::RouteTable",
+              "Properties": {
+                "VpcId": { "Ref": "grp2Vpc" },
+                "Tags": [{ "Key": "Name", "Value":  "grp2-Pub-RT" }]
+              }
+            },
+            "grp2PubRtAssoc": {
+              "Type": "AWS::EC2::SubnetRouteTableAssociation",
+              "Properties": {
+                "SubnetId": { "Ref": "grp2PubSubnet" },
+                "RouteTableId": { "Ref": "grp2PubRt" }
+              }
+            },
+            "grp2PubRoute": {
+              "Type": "AWS::EC2::Route",
+              "Properties": {
+                "RouteTableId": { "Ref": "grp2PubRt" },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "grp2IGW" }
+              }
+            },
+            "grp2Nat" : {
+   "Type" : "AWS::EC2::NatGateway",
+   "Properties" : {
+      "AllocationId" : { "Fn::GetAtt" : ["grp2Eip", "AllocationId"]},
+      "SubnetId" : { "Ref" : "grp2PubSubnet"},
+      "Tags" : [ {"Key" : "Name", "Value" : "grp2-NAT" } ]
+     }
+},
+            "grp2Eip": {
+  "Type": "AWS::EC2::EIP",
+  "Properties": {
+    "Domain": "vpc"
+  }
+},
+            "grp2PrivRoute": {
+  "Type": "AWS::EC2::Route",
+  "Properties": {
+    "RouteTableId": { "Ref": "grp2PrivRT" },
+    "DestinationCidrBlock": "0.0.0.0/0",
+    "NatGatewayId": { "Ref": "grp2Nat" }
+  }
+},
+"grp2ExternalSG1" : {
+  "Type" : "AWS::EC2::SecurityGroup",
+  "Properties" : {
+    "GroupDescription" : "security group 1 to allow ssh on port 22",
+    "SecurityGroupIngress" : [
+      { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" :"22" , "CidrIp" : "0.0.0.0/0" }
+    ],
+    "VpcId" : { "Ref": "grp2Vpc" },
+    "Tags" :  [ { "Key": "Name", "Value":  "grp2-external-SG1" }]
+  }
+},
+"grp2InternalSG2" : {
+  "Type" : "AWS::EC2::SecurityGroup",
+  "Properties" : {
+    "GroupDescription" : "security group 2 to allow  traffic from our external SG",
+    "SecurityGroupIngress" : [
+        { "IpProtocol" : "-1",  "SourceSecurityGroupId" : { "Ref": "grp2ExternalSG1" } }
+    ],
+    "VpcId" : { "Ref": "grp2Vpc" },
+    "Tags" :  [{ "Key": "Name", "Value":  "--grp2-internal-SG2" }]
+  }
+}
+
+    },
+    "Outputs": {
+
+    }
+}
+}
